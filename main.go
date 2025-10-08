@@ -15,19 +15,24 @@ import (
 func main() {
 	flag.Parse()
 	if len(flag.Args()) != 1 {
-		fmt.Println("Usage: checkwebcertificate domain:[port]")
+		fmt.Println("Usage: checkwebcertificate domain")
 		os.Exit(1)
 	}
 
 	addr := flag.Args()[0]
+	var completeAddr string
 
 	if !strings.Contains(addr, ":") {
-		addr = fmt.Sprintf("%s:%d", addr, 443)
+		completeAddr = fmt.Sprintf("%s:%d", addr, 443)
+	} else {
+		completeAddr = addr
 	}
 
+	addr = strings.Split(completeAddr, ":")[0]
+
 	// Connect to a TLS server
-	log.Println("Connecting to:", addr)
-	conn, err := tls.Dial("tcp", addr, nil)
+	log.Println("Connecting to:", completeAddr)
+	conn, err := tls.Dial("tcp", completeAddr, nil)
 	if errors.As(err, &x509.UnknownAuthorityError{}) {
 		log.Println("Unknown Authority Error:", err)
 		os.Exit(1)
