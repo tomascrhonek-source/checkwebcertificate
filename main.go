@@ -14,6 +14,11 @@ import (
 
 func main() {
 	flag.Parse()
+	if len(flag.Args()) != 1 {
+		fmt.Println("Usage: checkwebcertificate domain:[port]")
+		os.Exit(1)
+	}
+
 	addr := flag.Args()[0]
 
 	if !strings.Contains(addr, ":") {
