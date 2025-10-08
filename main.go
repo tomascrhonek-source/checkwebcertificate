@@ -5,8 +5,10 @@ import (
 	"crypto/x509"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -14,9 +16,13 @@ func main() {
 	flag.Parse()
 	addr := flag.Args()[0]
 
+	if !strings.Contains(addr, ":") {
+		addr = fmt.Sprintf("%s:%d", addr, 443)
+	}
+
 	// Connect to a TLS server
 	log.Println("Connecting to:", addr)
-	conn, err := tls.Dial("tcp", addr+":443", nil)
+	conn, err := tls.Dial("tcp", addr, nil)
 	if errors.As(err, &x509.UnknownAuthorityError{}) {
 		log.Println("Unknown Authority Error:", err)
 		os.Exit(1)
@@ -28,6 +34,7 @@ func main() {
 		os.Exit(1)
 	} else if err != nil {
 		log.Println("Other error:", err)
+		os.Exit(1)
 	} else if conn.ConnectionState().PeerCertificates == nil {
 		log.Println("No certificates presented by the server")
 		os.Exit(1)
