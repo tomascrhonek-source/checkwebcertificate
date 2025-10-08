@@ -8,5 +8,5 @@ and for most important, it check for expiration date.
 checkwebcertificate domain[:port]
 
 ## Exit codes
-0 - certificate is valid
-1 - error - see error message for more information
+    0 - certificate is valid
+    1 - error - see error message for more information
