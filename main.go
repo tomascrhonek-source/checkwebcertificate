@@ -7,9 +7,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type logWriter struct {
@@ -19,17 +24,7 @@ func (writer logWriter) Write(bytes []byte) (int, error) {
 	return fmt.Print(time.Now().UTC().Format("2006-01-02 15:04:05 ") + string(bytes))
 }
 
-func main() {
-	log.SetFlags(0)
-	log.SetOutput(new(logWriter))
-
-	flag.Parse()
-	if len(flag.Args()) != 1 {
-		fmt.Println("Usage: checkwebcertificate domain")
-		os.Exit(1)
-	}
-
-	addr := flag.Args()[0]
+func checkCerts(addr string) int {
 	var completeAddr string
 
 	if !strings.Contains(addr, ":") {
@@ -85,9 +80,45 @@ func main() {
 		days := time.Until(certDate)
 		log.Printf("Certificate for %s expires on: %s\n", addr, certDate.Format("2006-01-02 15:04:05"))
 		log.Printf("Which is after %.0f days\n", days.Hours()/24)
-		os.Exit(0)
+		return int(days.Hours() / 24)
 	} else {
 		log.Println("No certificates found.")
 		os.Exit(1)
+	}
+	return -1
+}
+
+var (
+	crtDays = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "Certificate days",
+		Help: "The number of days before expiration",
+	})
+)
+
+func main() {
+	log.SetFlags(0)
+	log.SetOutput(new(logWriter))
+
+	prom := flag.Bool("prometheus", false, "Export data for Prometheus")
+	flag.Parse()
+	addr := flag.Args()[0]
+
+	if len(flag.Args()) != 1 {
+		fmt.Println("Usage: checkwebcertificate domain")
+		os.Exit(1)
+	}
+
+	if *prom {
+		go func() {
+			for {
+				crtDays.Set(float64(checkCerts(addr)))
+				time.Sleep(10 * time.Second)
+			}
+		}()
+
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":2112", nil)
+	} else {
+		checkCerts(addr)
 	}
 }
