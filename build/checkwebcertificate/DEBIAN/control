@@ -1,0 +1,7 @@
+Package: checkwebcertificate
+Version: 1.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Tomas Crhonek <tomascrhonek@gmail.com>
+Description: Tool for checking expiration dates on https certificates.
